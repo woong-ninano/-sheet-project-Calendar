@@ -1,11 +1,11 @@
 import { Employee, VacationEntry, VacationType, VACATION_COST, Holiday } from '../types';
 
-// .env에 있는 VITE_GAS_APP_URL을 우선적으로 사용합니다.
-// 배포 후 URL이 변경되었다면 .env를 꼭 수정해주세요.
-const DEFAULT_GAS_URL = ''; // 보안상 기본값 제거, .env 사용 권장
+// .env 로드 실패 시 사용할 백업 URL (제공해주신 URL 적용)
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbx_ChIQqxEx1w_1tBIU6issjHCioCZT9fwNKDP-28yYjtdnoDbrHNrGC981LaiWF7TV/exec';
 
 // Type assertion to avoid TypeScript errors when vite/client types are missing
 const env = (import.meta as any).env;
+// 환경변수가 있으면 사용하고, 없으면 하드코딩된 DEFAULT_GAS_URL 사용
 const GAS_URL = (env && env.VITE_GAS_APP_URL) ? env.VITE_GAS_APP_URL : DEFAULT_GAS_URL;
 
 // --- 공통 Fetch 헬퍼 ---
@@ -21,7 +21,7 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
   const options: RequestInit = {
     method: body ? 'POST' : 'GET',
     headers: {
-      'Content-Type': 'text/plain;charset=utf-8', // CORS 문제 해결 핵심
+      'Content-Type': 'text/plain;charset=utf-8',
     },
     body: body ? JSON.stringify(body) : undefined,
   };
@@ -38,7 +38,7 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
         const json = JSON.parse(text);
         if (json.error) {
            console.error("GAS 서버 에러:", json.error);
-           alert(`서버 에러 발생: ${json.error}`);
+           // alert(`서버 에러 발생: ${json.error}`); // 사용자 경험을 위해 alert 제거
            return [];
         }
         return json;
@@ -55,8 +55,17 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
 // --- 직원 관련 함수 ---
 export const getEmployees = async (): Promise<Employee[]> => {
   const data = await fetchGAS({ action: 'getEmployees' });
-  // 데이터가 없거나 에러일 경우 빈 배열 반환
-  return Array.isArray(data) ? data : [];
+  
+  if (Array.isArray(data)) {
+    // 시트에서 가져온 데이터가 문자열일 수 있으므로 숫자로 변환
+    return data.map((emp: any) => ({
+      ...emp,
+      manMonths: Number(emp.manMonths) || 0,
+      totalVacationDays: Number(emp.totalVacationDays) || 0
+    }));
+  }
+  
+  return [];
 };
 
 export const saveEmployee = async (employee: Employee): Promise<void> => {
