@@ -62,6 +62,16 @@ export const CalendarView: React.FC = () => {
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
+  const getShortType = (type: string) => {
+    switch (type) {
+      case VacationType.HALF_AM: return '오전';
+      case VacationType.HALF_PM: return '오후';
+      case VacationType.QUARTER: return '반반';
+      case VacationType.FULL: return '연차';
+      default: return '연차';
+    }
+  };
+
   const renderCalendarDays = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -134,6 +144,7 @@ export const CalendarView: React.FC = () => {
           <div className="flex flex-col gap-0.5 md:gap-1 mt-0.5">
             {dayVacations.map(vac => {
               const empName = employees.find(e => e.id === vac.employeeId)?.name || '미상';
+              const shortType = getShortType(vac.type);
               
               // 뱃지 스타일 개선
               let badgeStyle = 'bg-blue-100 text-blue-900 border-blue-200';
@@ -143,10 +154,11 @@ export const CalendarView: React.FC = () => {
               return (
                 <div 
                   key={vac.id} 
-                  // 모바일 최적화: text-[10px], px-0.5 (패딩 축소), h-auto
-                  className={`text-[10px] md:text-xs px-0.5 py-0.5 md:px-1.5 md:py-1 rounded shadow-sm border flex items-center justify-center ${badgeStyle}`}
+                  // 모바일 최적화: 모바일에서는 이름만(가운데 정렬), PC에서는 이름+타입(좌측 정렬)
+                  className={`text-[10px] md:text-xs px-1 py-0.5 md:px-1.5 md:py-1 rounded shadow-sm border flex items-center justify-between gap-0.5 ${badgeStyle}`}
                 >
-                  <span className="font-bold truncate w-full text-center leading-tight">{empName}</span>
+                  <span className="font-bold truncate flex-1 min-w-0 text-center md:text-left">{empName}</span>
+                  <span className="hidden md:block text-[9px] md:text-[10px] font-medium shrink-0 opacity-80 tracking-tighter">{shortType}</span>
                 </div>
               );
             })}
