@@ -16,22 +16,39 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
   const options: RequestInit = {
     method: body ? 'POST' : 'GET',
     body: body ? JSON.stringify(body) : undefined,
-    // 리다이렉트를 자동으로 따라가도록 설정
     redirect: 'follow', 
-    // 브라우저 캐시 방지 (선택)
-    cache: 'no-cache' 
   };
 
-  // POST 요청 시 구글 앱스 스크립트는 content-type 제한이 엄격하므로 헤더를 생략하거나 
-  // 필요에 따라 아래와 같이 설정할 수 있습니다.
-  const response = await fetch(url, options);
-  if (!response.ok) throw new Error('Network response was not ok');
-  return response.json();
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+        console.error(`GAS API Error: ${response.status} ${response.statusText}`);
+        throw new Error(`Network response was not ok: ${response.status}`);
+    }
+    
+    const text = await response.text();
+    try {
+        const json = JSON.parse(text);
+        // 만약 GAS가 { result: 'success', data: [...] } 형태로 준다면 data를 반환
+        // 현재는 직접 배열을 반환한다고 가정
+        return json;
+    } catch (e) {
+        console.error("JSON 파싱 에러. 응답이 HTML일 수 있습니다 (권한 설정 확인 필요):", text.slice(0, 150));
+        throw new Error("데이터를 불러오지 못했습니다. (GAS 권한이 'Anyone'으로 설정되었는지 확인해주세요)");
+    }
+  } catch (error) {
+    console.error("fetchGAS 실패:", error);
+    // 에러 발생 시 빈 배열이나 null을 반환하여 앱이 멈추지 않게 함
+    // 호출하는 쪽에서 배열을 기대하므로 빈 배열 반환 시도 (위험할 수 있으나 UI 크래시 방지)
+    return []; 
+  }
 };
 
 // --- 직원 관련 함수 ---
 export const getEmployees = async (): Promise<Employee[]> => {
-  return fetchGAS({ action: 'getEmployees' });
+  const data = await fetchGAS({ action: 'getEmployees' });
+  // 배열이 아닌 경우(에러 등) 빈 배열 반환
+  return Array.isArray(data) ? data : [];
 };
 
 export const saveEmployee = async (employee: Employee): Promise<void> => {
@@ -48,7 +65,8 @@ export const deleteEmployee = async (id: string): Promise<void> => {
 
 // --- 휴가 관련 함수 ---
 export const getVacations = async (): Promise<VacationEntry[]> => {
-  return fetchGAS({ action: 'getVacations' });
+  const data = await fetchGAS({ action: 'getVacations' });
+  return Array.isArray(data) ? data : [];
 };
 
 export const addVacation = async (employeeId: string, date: string, type: VacationType): Promise<void> => {
