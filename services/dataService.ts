@@ -1,7 +1,8 @@
 import { Employee, VacationEntry, VacationType, VACATION_COST, Holiday } from '../types';
 
-// .env에 있는 최신 URL을 기본값으로 업데이트하여 환경 변수 로드 실패 시에도 동작하도록 수정
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxebtI3v8u10ZOd1Rd3SWwdXd4MOqGVWrBtbEgNYASjAjUnbmhsK-ng-Wj-T3s4dp6p/exec';
+// .env에 있는 VITE_GAS_APP_URL을 우선적으로 사용합니다.
+// 배포 후 URL이 변경되었다면 .env를 꼭 수정해주세요.
+const DEFAULT_GAS_URL = ''; // 보안상 기본값 제거, .env 사용 권장
 
 // Type assertion to avoid TypeScript errors when vite/client types are missing
 const env = (import.meta as any).env;
@@ -9,25 +10,26 @@ const GAS_URL = (env && env.VITE_GAS_APP_URL) ? env.VITE_GAS_APP_URL : DEFAULT_G
 
 // --- 공통 Fetch 헬퍼 ---
 const fetchGAS = async (params: Record<string, string>, body?: any) => {
+  if (!GAS_URL) {
+    console.error("GAS URL이 설정되지 않았습니다. .env 파일을 확인해주세요.");
+    return [];
+  }
+
   const queryString = new URLSearchParams(params).toString();
   const url = `${GAS_URL}?${queryString}`;
   
   const options: RequestInit = {
     method: body ? 'POST' : 'GET',
-    // 중요: GAS는 OPTIONS Preflight 요청을 처리하지 못하므로,
-    // Content-Type을 text/plain으로 명시하여 Simple Request로 보내야 CORS 오류가 발생하지 않습니다.
     headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
+      'Content-Type': 'text/plain;charset=utf-8', // CORS 문제 해결 핵심
     },
     body: body ? JSON.stringify(body) : undefined,
-    redirect: 'follow', 
   };
 
   try {
     const response = await fetch(url, options);
     
     if (!response.ok) {
-        console.error(`GAS API Error: ${response.status} ${response.statusText}`);
         throw new Error(`서버 응답 오류: ${response.status}`);
     }
     
@@ -35,18 +37,17 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
     try {
         const json = JSON.parse(text);
         if (json.error) {
-           console.error("GAS 내부 스크립트 에러:", json.error);
+           console.error("GAS 서버 에러:", json.error);
+           alert(`서버 에러 발생: ${json.error}`);
            return [];
         }
         return json;
     } catch (e) {
-        console.error("JSON 파싱 에러. 응답 내용:", text.slice(0, 150));
-        console.warn("TIP: Apps Script 배포 시 '액세스 권한'이 '모든 사용자(Anyone)'인지 확인하세요.");
-        throw new Error("데이터 형식이 올바르지 않습니다.");
+        console.error("데이터 파싱 실패:", text);
+        return [];
     }
   } catch (error) {
-    console.error("fetchGAS 통신 실패:", error);
-    // UI가 멈추지 않도록 빈 배열 반환
+    console.error("네트워크 통신 실패:", error);
     return []; 
   }
 };
@@ -54,6 +55,7 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
 // --- 직원 관련 함수 ---
 export const getEmployees = async (): Promise<Employee[]> => {
   const data = await fetchGAS({ action: 'getEmployees' });
+  // 데이터가 없거나 에러일 경우 빈 배열 반환
   return Array.isArray(data) ? data : [];
 };
 
@@ -77,7 +79,7 @@ export const getVacations = async (): Promise<VacationEntry[]> => {
 
 export const addVacation = async (employeeId: string, date: string, type: VacationType): Promise<void> => {
   const newEntry = {
-    id: `vac_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+    id: `vac_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     employeeId,
     date,
     type,
@@ -110,10 +112,6 @@ const HOLIDAYS: Holiday[] = [
   { date: '2025-10-08', name: '대체공휴일(추석)' }, 
   { date: '2025-10-09', name: '한글날' },
   { date: '2025-12-25', name: '크리스마스' },
-  { date: '2026-01-01', name: '신정' },
-  { date: '2026-02-17', name: '설날 연휴' },
-  { date: '2026-02-18', name: '설날' },
-  { date: '2026-02-19', name: '설날 연휴' },
 ];
 
 export const getHolidays = (): Holiday[] => {
@@ -126,9 +124,11 @@ export const calculateManMonths = (start: string, end: string): number => {
   
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 0;
   
-  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+  const diffTime = endDate.getTime() - startDate.getTime();
+  if (diffTime < 0) return 0;
+
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 시작일 포함
   
-  const mm = (diffDays / 30.4).toFixed(1); 
+  const mm = (diffDays / 30.417).toFixed(1); 
   return parseFloat(mm);
 };

@@ -4,7 +4,7 @@ import { getEmployees, getVacations, removeVacation, getHolidays } from '../serv
 import { Employee, VacationEntry, VacationType, Holiday } from '../types';
 
 export const CalendarView: React.FC = () => {
-  // Initialize with 2025-01-01 as requested
+  // 시작날짜 2025-01-01 고정
   const [currentDate, setCurrentDate] = useState(new Date('2025-01-01'));
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [vacations, setVacations] = useState<VacationEntry[]>([]);
@@ -17,11 +17,15 @@ export const CalendarView: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const emps = await getEmployees();
-      const vacs = await getVacations();
-      setEmployees(emps);
-      setVacations(vacs);
-      setHolidays(getHolidays());
+      try {
+        const emps = await getEmployees();
+        const vacs = await getVacations();
+        setEmployees(emps);
+        setVacations(vacs);
+        setHolidays(getHolidays());
+      } catch (e) {
+        console.error("데이터 로드 실패:", e);
+      }
     };
     fetchData();
   }, [tick]);
@@ -33,7 +37,8 @@ export const CalendarView: React.FC = () => {
   }, []);
 
   const changeMonth = (delta: number) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1);
+    setCurrentDate(newDate);
   };
 
   const handleDelete = async (id: string) => {
@@ -63,15 +68,15 @@ export const CalendarView: React.FC = () => {
     const daysInMonth = getDaysInMonth(year, month);
     const startDay = getFirstDayOfMonth(year, month);
     
-    // Calculate today's date string for highlighting
+    // 오늘 날짜 계산
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     const days = [];
     
-    // Empty cells
+    // Empty cells (이전 달의 공간)
     for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-[80px] md:min-h-[100px] bg-gray-50/30 border-r border-b border-gray-100"></div>);
+      days.push(<div key={`empty-${i}`} className="min-h-[90px] md:min-h-[110px] bg-gray-50/40 border-r border-b border-gray-100"></div>);
     }
 
     // Days
@@ -88,48 +93,48 @@ export const CalendarView: React.FC = () => {
       let dateTextColor = 'text-gray-700';
       if (isWeekend) dateTextColor = 'text-red-400';
       if (isHoliday) dateTextColor = 'text-red-600';
-      if (isToday) dateTextColor = 'text-blue-700 font-bold';
+      if (isToday) dateTextColor = 'text-blue-700 font-extrabold';
 
       // Background Color Logic
-      let cellBgClass = 'bg-white';
-      if (isWeekend || isHoliday) cellBgClass = 'bg-slate-50/50';
-      if (isToday) cellBgClass = 'bg-blue-50 ring-1 ring-inset ring-blue-300';
+      let cellBgClass = 'bg-white hover:bg-gray-50';
+      if (isWeekend || isHoliday) cellBgClass = 'bg-red-50/20 hover:bg-red-50/40';
+      if (isToday) cellBgClass = 'bg-blue-50 ring-2 ring-inset ring-blue-200';
 
       days.push(
         <div 
           key={day} 
           onClick={() => handleDayClick(dateStr)}
-          className={`min-h-[80px] md:min-h-[100px] p-0.5 md:p-1 border-r border-b border-gray-100 cursor-pointer transition-colors active:bg-gray-100 ${cellBgClass}`}
+          className={`min-h-[90px] md:min-h-[110px] p-1 border-r border-b border-gray-100 cursor-pointer transition-colors ${cellBgClass}`}
         >
-          <div className="flex justify-between items-start mb-1 px-0.5">
-            <span className={`text-xs md:text-sm font-semibold pl-0.5 ${dateTextColor}`}>
+          <div className="flex justify-between items-start mb-1">
+            <span className={`text-sm pl-1 ${dateTextColor} ${isToday ? 'scale-110 origin-left' : ''}`}>
               {day}
             </span>
             {isHoliday && (
-              <span className="text-[10px] text-red-500 font-medium pr-0.5 truncate max-w-[50px] md:max-w-none text-right">
+              <span className="text-[10px] text-white bg-red-400 px-1.5 py-0.5 rounded-full truncate max-w-[60px] md:max-w-none">
                 {holiday.name}
               </span>
             )}
             {isToday && !isHoliday && (
-              <span className="text-[10px] text-blue-600 font-medium pr-0.5">오늘</span>
+              <span className="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full font-bold">Today</span>
             )}
           </div>
 
-          <div className="flex flex-col gap-0.5 md:gap-1">
+          <div className="flex flex-col gap-1 mt-1">
             {dayVacations.map(vac => {
-              const empName = employees.find(e => e.id === vac.employeeId)?.name || 'Unknown';
+              const empName = employees.find(e => e.id === vac.employeeId)?.name || '미상';
               
-              let badgeStyle = 'bg-blue-100 text-blue-800 border-blue-200';
-              if (vac.type.includes('반차')) badgeStyle = 'bg-amber-100 text-amber-800 border-amber-200';
-              if (vac.type === VacationType.QUARTER) badgeStyle = 'bg-purple-100 text-purple-800 border-purple-200';
+              // 뱃지 스타일 개선
+              let badgeStyle = 'bg-blue-100 text-blue-900 border-blue-200';
+              if (vac.type.includes('반차')) badgeStyle = 'bg-amber-100 text-amber-900 border-amber-200';
+              if (vac.type === VacationType.QUARTER) badgeStyle = 'bg-purple-100 text-purple-900 border-purple-200';
 
               return (
                 <div 
                   key={vac.id} 
-                  className={`text-[11px] md:text-xs px-1.5 py-0.5 md:py-1 rounded md:rounded-md flex items-center justify-between border shadow-sm ${badgeStyle}`}
+                  className={`text-xs px-1.5 py-1 rounded shadow-sm border flex items-center justify-between ${badgeStyle}`}
                 >
-                  <span className="font-bold whitespace-nowrap overflow-hidden text-ellipsis mr-1 max-w-full text-[10px] md:text-xs">{empName}</span>
-                  <span className="opacity-75 text-[9px] whitespace-nowrap hidden lg:inline-block scale-90 origin-right">{vac.type}</span>
+                  <span className="font-bold truncate w-full text-center">{empName}</span>
                 </div>
               );
             })}
@@ -149,46 +154,52 @@ export const CalendarView: React.FC = () => {
     const holiday = holidays.find(h => h.date === selectedDate);
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
-          <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100 border border-gray-200">
+          <div className="bg-white px-5 py-4 border-b border-gray-100 flex justify-between items-center">
              <div className="flex flex-col">
-               <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                 <CalendarIcon size={18} className="text-blue-600"/> {formattedDate}
+               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                 <CalendarIcon size={20} className="text-indigo-600"/> 
+                 <span className="mt-0.5">{formattedDate}</span>
                </h3>
-               {holiday && <span className="text-xs text-red-500 font-medium ml-7">{holiday.name}</span>}
+               {holiday && <span className="text-sm text-red-500 font-bold mt-1 ml-1">🎈 {holiday.name}</span>}
              </div>
-             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-               <X size={20} />
+             <button onClick={closeModal} className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+               <X size={24} />
              </button>
           </div>
           
-          <div className="p-5 max-h-[60vh] overflow-y-auto">
+          <div className="p-5 max-h-[60vh] overflow-y-auto bg-gray-50/50">
             {dayVacations.length === 0 ? (
-              <p className="text-center text-gray-400 py-8 text-sm">등록된 휴가가 없습니다.</p>
+              <div className="text-center py-10">
+                <p className="text-gray-400 text-sm">등록된 휴가가 없습니다.</p>
+              </div>
             ) : (
               <ul className="space-y-3">
                 {dayVacations.map(vac => {
-                  const empName = employees.find(e => e.id === vac.employeeId)?.name || '미확인';
+                  const empName = employees.find(e => e.id === vac.employeeId)?.name || '데이터 없음';
                   
-                  let typeColor = 'text-blue-600 bg-blue-50 border-blue-100';
-                  if (vac.type.includes('반차')) typeColor = 'text-amber-600 bg-amber-50 border-amber-100';
-                  if (vac.type === VacationType.QUARTER) typeColor = 'text-purple-600 bg-purple-50 border-purple-100';
+                  let typeColor = 'text-blue-700 bg-blue-50 border-blue-200';
+                  if (vac.type.includes('반차')) typeColor = 'text-amber-700 bg-amber-50 border-amber-200';
+                  if (vac.type === VacationType.QUARTER) typeColor = 'text-purple-700 bg-purple-50 border-purple-200';
 
                   return (
-                    <li key={vac.id} className="flex items-center justify-between bg-white border border-gray-100 p-3 rounded-lg shadow-sm">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-800 text-lg">{empName}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full w-fit mt-1 border ${typeColor}`}>
-                          {vac.type}
-                        </span>
+                    <li key={vac.id} className="flex items-center justify-between bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-10 rounded-full ${typeColor.replace('text-', 'bg-').split(' ')[0].replace('50', '500')}`}></div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 text-lg">{empName}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-md w-fit mt-1 border font-medium ${typeColor}`}>
+                            {vac.type}
+                          </span>
+                        </div>
                       </div>
                       <button 
                         onClick={() => handleDelete(vac.id)}
-                        className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                         title="삭제"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={20} />
                       </button>
                     </li>
                   );
@@ -197,8 +208,8 @@ export const CalendarView: React.FC = () => {
             )}
           </div>
           
-          <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
-            <button onClick={closeModal} className="text-sm text-gray-600 font-medium hover:text-gray-900">
+          <div className="p-4 bg-white border-t border-gray-100">
+            <button onClick={closeModal} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors">
               닫기
             </button>
           </div>
@@ -211,33 +222,33 @@ export const CalendarView: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto md:p-6 p-2 pb-24">
-      <div className="bg-white shadow-sm md:shadow-lg rounded-xl md:rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
         {/* Calendar Header */}
-        <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-200 bg-white flex items-center justify-between">
-          <h2 className="text-lg md:text-2xl font-bold text-gray-800">
-            {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
+        <div className="px-4 py-4 md:px-8 md:py-6 border-b border-gray-100 bg-white flex items-center justify-between">
+          <h2 className="text-xl md:text-3xl font-bold text-gray-800 tracking-tight">
+            {currentDate.getFullYear()}년 <span className="text-indigo-600">{currentDate.getMonth() + 1}월</span>
           </h2>
-          <div className="flex gap-1 md:gap-2">
-            <button onClick={() => changeMonth(-1)} className="p-1.5 md:p-2 rounded-full hover:bg-gray-100 text-gray-600">
-              <ChevronLeft size={20} />
+          <div className="flex gap-2">
+            <button onClick={() => changeMonth(-1)} className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 text-gray-600 transition-all hover:shadow-md">
+              <ChevronLeft size={24} />
             </button>
-            <button onClick={() => changeMonth(1)} className="p-1.5 md:p-2 rounded-full hover:bg-gray-100 text-gray-600">
-              <ChevronRight size={20} />
+            <button onClick={() => changeMonth(1)} className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 text-gray-600 transition-all hover:shadow-md">
+              <ChevronRight size={24} />
             </button>
           </div>
         </div>
 
         {/* Days Header */}
-        <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+        <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80 backdrop-blur-sm sticky top-0">
           {weeks.map((w, idx) => (
-            <div key={w} className={`py-2 md:py-3 text-center text-xs md:text-sm font-bold ${idx === 0 ? 'text-red-500' : 'text-gray-600'}`}>
+            <div key={w} className={`py-3 text-center text-sm font-bold ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
               {w}
             </div>
           ))}
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 bg-gray-100 gap-px border-b border-gray-200">
           {renderCalendarDays()}
         </div>
       </div>
