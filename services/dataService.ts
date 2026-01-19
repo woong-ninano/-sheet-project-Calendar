@@ -15,31 +15,40 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
   
   const options: RequestInit = {
     method: body ? 'POST' : 'GET',
+    // 중요: GAS는 OPTIONS Preflight 요청을 처리하지 못하므로,
+    // Content-Type을 text/plain으로 명시하여 Simple Request로 보내야 CORS 오류가 발생하지 않습니다.
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
     body: body ? JSON.stringify(body) : undefined,
     redirect: 'follow', 
   };
 
   try {
     const response = await fetch(url, options);
+    
     if (!response.ok) {
         console.error(`GAS API Error: ${response.status} ${response.statusText}`);
-        throw new Error(`Network response was not ok: ${response.status}`);
+        throw new Error(`서버 응답 오류: ${response.status}`);
     }
     
     const text = await response.text();
     try {
         const json = JSON.parse(text);
-        // 만약 GAS가 { result: 'success', data: [...] } 형태로 준다면 data를 반환
-        // 현재는 직접 배열을 반환한다고 가정
+        if (json.error) {
+           console.error("GAS 내부 스크립트 에러:", json.error);
+           // 스크립트 에러가 있어도 앱이 멈추지 않도록 빈 배열 처리 가능하면 처리
+           return [];
+        }
         return json;
     } catch (e) {
-        console.error("JSON 파싱 에러. 응답이 HTML일 수 있습니다 (권한 설정 확인 필요):", text.slice(0, 150));
-        throw new Error("데이터를 불러오지 못했습니다. (GAS 권한이 'Anyone'으로 설정되었는지 확인해주세요)");
+        console.error("JSON 파싱 에러. 응답 내용:", text.slice(0, 150));
+        console.warn("TIP: Apps Script 배포 시 '액세스 권한'이 '모든 사용자(Anyone)'인지 확인하세요.");
+        throw new Error("데이터 형식이 올바르지 않습니다.");
     }
   } catch (error) {
-    console.error("fetchGAS 실패:", error);
-    // 에러 발생 시 빈 배열이나 null을 반환하여 앱이 멈추지 않게 함
-    // 호출하는 쪽에서 배열을 기대하므로 빈 배열 반환 시도 (위험할 수 있으나 UI 크래시 방지)
+    console.error("fetchGAS 통신 실패:", error);
+    // UI가 멈추지 않도록 빈 배열 반환
     return []; 
   }
 };
@@ -47,7 +56,6 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
 // --- 직원 관련 함수 ---
 export const getEmployees = async (): Promise<Employee[]> => {
   const data = await fetchGAS({ action: 'getEmployees' });
-  // 배열이 아닌 경우(에러 등) 빈 배열 반환
   return Array.isArray(data) ? data : [];
 };
 
