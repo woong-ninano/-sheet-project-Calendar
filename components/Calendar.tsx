@@ -4,7 +4,7 @@ import { getEmployees, getVacations, removeVacation, getHolidays } from '../serv
 import { Employee, VacationEntry, VacationType, Holiday } from '../types';
 
 export const CalendarView: React.FC = () => {
-  // Initialize with today's date
+  // Initialize with Current Date
   const [currentDate, setCurrentDate] = useState(new Date());
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [vacations, setVacations] = useState<VacationEntry[]>([]);
@@ -119,17 +119,17 @@ export const CalendarView: React.FC = () => {
             {dayVacations.map(vac => {
               const empName = employees.find(e => e.id === vac.employeeId)?.name || 'Unknown';
               
-              let badgeStyle = 'bg-blue-50 text-blue-700 border-blue-100';
-              if (vac.type.includes('반차')) badgeStyle = 'bg-amber-50 text-amber-700 border-amber-100';
-              if (vac.type === VacationType.QUARTER) badgeStyle = 'bg-purple-50 text-purple-700 border-purple-100';
+              let badgeStyle = 'bg-blue-100 text-blue-800 border-blue-200';
+              if (vac.type.includes('반차')) badgeStyle = 'bg-amber-100 text-amber-800 border-amber-200';
+              if (vac.type === VacationType.QUARTER) badgeStyle = 'bg-purple-100 text-purple-800 border-purple-200';
 
               return (
                 <div 
                   key={vac.id} 
-                  className={`text-[10px] md:text-xs px-1 py-0.5 md:px-1.5 md:py-1 rounded-sm md:rounded-md flex items-center justify-between border shadow-sm ${badgeStyle}`}
+                  className={`text-[11px] md:text-xs px-1.5 py-0.5 md:py-1 rounded md:rounded-md flex items-center justify-between border shadow-sm ${badgeStyle}`}
                 >
-                  <span className="font-bold whitespace-nowrap overflow-hidden text-ellipsis mr-0.5 tracking-tighter">{empName}</span>
-                  <span className="opacity-80 text-[9px] md:text-[10px] whitespace-nowrap hidden md:inline-block">{vac.type}</span>
+                  <span className="font-bold whitespace-nowrap overflow-hidden text-ellipsis mr-1">{empName}</span>
+                  <span className="opacity-75 text-[9px] whitespace-nowrap hidden lg:inline-block scale-90 origin-right">{vac.type}</span>
                 </div>
               );
             })}

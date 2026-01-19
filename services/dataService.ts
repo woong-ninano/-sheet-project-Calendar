@@ -16,10 +16,14 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
   const options: RequestInit = {
     method: body ? 'POST' : 'GET',
     body: body ? JSON.stringify(body) : undefined,
-    // Google Apps Script Web App POST 요청 처리를 위해 필요한 경우 헤더 추가 가능
-    // mode: 'cors' // 기본값 사용
+    // 리다이렉트를 자동으로 따라가도록 설정
+    redirect: 'follow', 
+    // 브라우저 캐시 방지 (선택)
+    cache: 'no-cache' 
   };
 
+  // POST 요청 시 구글 앱스 스크립트는 content-type 제한이 엄격하므로 헤더를 생략하거나 
+  // 필요에 따라 아래와 같이 설정할 수 있습니다.
   const response = await fetch(url, options);
   if (!response.ok) throw new Error('Network response was not ok');
   return response.json();

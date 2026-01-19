@@ -35,7 +35,7 @@ function App() {
           <div className="flex flex-col sm:flex-row justify-between h-auto sm:h-16 py-2 sm:py-0 gap-2 sm:gap-0">
             <div className="flex items-center justify-center sm:justify-start">
               <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                현대해상다이렉트 휴가캘린더
+                현대해상 휴가캘린더
               </span>
             </div>
             <div className="flex space-x-1 sm:space-x-2 items-center justify-between sm:justify-end w-full sm:w-auto bg-gray-50 sm:bg-transparent p-1 sm:p-0 rounded-lg">
