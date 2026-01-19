@@ -1,8 +1,7 @@
 import { Employee, VacationEntry, VacationType, VACATION_COST, Holiday } from '../types';
 
-// 환경 변수가 로드되지 않는 환경(import.meta.env undefined)을 대비하여 안전하게 접근하고,
-// 값이 없을 경우 하드코딩된 GAS Web App URL을 사용합니다.
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbza2sIu1EfJx7vElObZjBy4R-jwtHdNQdEr6GFXsOv7BdAna4vZe3GFxvWO7sjLtlg6/exec';
+// .env에 있는 최신 URL을 기본값으로 업데이트하여 환경 변수 로드 실패 시에도 동작하도록 수정
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxebtI3v8u10ZOd1Rd3SWwdXd4MOqGVWrBtbEgNYASjAjUnbmhsK-ng-Wj-T3s4dp6p/exec';
 
 // Type assertion to avoid TypeScript errors when vite/client types are missing
 const env = (import.meta as any).env;
@@ -37,7 +36,6 @@ const fetchGAS = async (params: Record<string, string>, body?: any) => {
         const json = JSON.parse(text);
         if (json.error) {
            console.error("GAS 내부 스크립트 에러:", json.error);
-           // 스크립트 에러가 있어도 앱이 멈추지 않도록 빈 배열 처리 가능하면 처리
            return [];
         }
         return json;
