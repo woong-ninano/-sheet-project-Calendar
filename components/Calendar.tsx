@@ -4,8 +4,8 @@ import { getEmployees, getVacations, removeVacation, getHolidays } from '../serv
 import { Employee, VacationEntry, VacationType, Holiday } from '../types';
 
 export const CalendarView: React.FC = () => {
-  // 시작날짜 2025-01-01 고정
-  const [currentDate, setCurrentDate] = useState(new Date('2025-01-01'));
+  // 시작날짜를 오늘로 설정 (접속 시 이번 달 보여줌)
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [vacations, setVacations] = useState<VacationEntry[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -96,31 +96,42 @@ export const CalendarView: React.FC = () => {
       if (isToday) dateTextColor = 'text-blue-700 font-extrabold';
 
       // Background Color Logic
-      let cellBgClass = 'bg-white hover:bg-gray-50';
-      if (isWeekend || isHoliday) cellBgClass = 'bg-red-50/20 hover:bg-red-50/40';
-      if (isToday) cellBgClass = 'bg-blue-50 ring-2 ring-inset ring-blue-200';
+      let cellBgClass = 'bg-white hover:bg-gray-50'; // 기본 평일
+
+      if (isWeekend) {
+        cellBgClass = 'bg-gray-50 hover:bg-gray-100'; // 주말: 차분한 회색
+      }
+      
+      if (isHoliday) {
+        cellBgClass = 'bg-red-50 hover:bg-red-100'; // 공휴일: 연한 빨강 (강조)
+      }
+
+      if (isToday) {
+        cellBgClass = 'bg-blue-50 ring-2 ring-inset ring-blue-200'; // 오늘: 파랑 강조 (최우선)
+      }
 
       days.push(
         <div 
           key={day} 
           onClick={() => handleDayClick(dateStr)}
-          className={`min-h-[90px] md:min-h-[110px] p-1 border-r border-b border-gray-100 cursor-pointer transition-colors ${cellBgClass}`}
+          className={`min-h-[90px] md:min-h-[110px] p-0.5 md:p-1 border-r border-b border-gray-100 cursor-pointer transition-colors ${cellBgClass}`}
         >
-          <div className="flex justify-between items-start mb-1">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-1">
             <span className={`text-sm pl-1 ${dateTextColor} ${isToday ? 'scale-110 origin-left' : ''}`}>
               {day}
             </span>
             {isHoliday && (
-              <span className="text-[10px] text-white bg-red-400 px-1.5 py-0.5 rounded-full truncate max-w-[60px] md:max-w-none">
+              // 휴일 배지 제거 -> 텍스트로 변경
+              <span className="text-[10px] md:text-xs text-red-500 font-bold truncate pl-1 md:pl-0">
                 {holiday.name}
               </span>
             )}
             {isToday && !isHoliday && (
-              <span className="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full font-bold">Today</span>
+              <span className="hidden md:inline-block text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full font-bold">Today</span>
             )}
           </div>
 
-          <div className="flex flex-col gap-1 mt-1">
+          <div className="flex flex-col gap-0.5 md:gap-1 mt-0.5">
             {dayVacations.map(vac => {
               const empName = employees.find(e => e.id === vac.employeeId)?.name || '미상';
               
@@ -132,9 +143,10 @@ export const CalendarView: React.FC = () => {
               return (
                 <div 
                   key={vac.id} 
-                  className={`text-xs px-1.5 py-1 rounded shadow-sm border flex items-center justify-between ${badgeStyle}`}
+                  // 모바일 최적화: text-[10px], px-0.5 (패딩 축소), h-auto
+                  className={`text-[10px] md:text-xs px-0.5 py-0.5 md:px-1.5 md:py-1 rounded shadow-sm border flex items-center justify-center ${badgeStyle}`}
                 >
-                  <span className="font-bold truncate w-full text-center">{empName}</span>
+                  <span className="font-bold truncate w-full text-center leading-tight">{empName}</span>
                 </div>
               );
             })}
